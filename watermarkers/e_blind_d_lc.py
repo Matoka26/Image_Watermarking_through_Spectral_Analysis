@@ -9,7 +9,7 @@ class EBlindDLC(BaseWatermarker):
         np.random.seed(secret_key)
 
         # Generate Reference Pattern
-        wr = np.random.randint(100, size=work.shape, dtype=np.int8)
+        wr = np.random.randint(20, size=work.shape, dtype=np.int8)
 
         # Embedding Scheme
         wm = (-1) ** (int(secret) + 1) * wr
@@ -27,7 +27,7 @@ class EBlindDLC(BaseWatermarker):
         np.random.seed(secret_key)
 
         # Generate Reference Pattern
-        wr = np.random.randint(100, size=work.shape, dtype=np.uint8)
+        wr = np.random.randint(20, size=work.shape, dtype=np.uint8)
 
         # Calculate linear correlation of reference pattern and work
         lc = BaseWatermarker._linear_correlation(work, wr)

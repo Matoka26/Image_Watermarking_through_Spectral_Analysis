@@ -29,7 +29,7 @@ class EBlindDLC(BaseWatermarker):
         wr = np.random.randint(10, size=work.shape, dtype=np.uint8)
 
         # Calculate linear correlation of reference pattern and work
-        lc = BaseWatermarker._linear_correlation(work, wr)
+        lc = BaseWatermarker._correlation_coefficient(work, wr)
         if lc > threshold:
             return 1
 

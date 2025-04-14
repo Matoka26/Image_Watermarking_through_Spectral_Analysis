@@ -1,14 +1,16 @@
-from watermarkers import e_fixed_d_lc as e
+import matplotlib.pyplot as plt
+
+from watermarkers import e_fft_blind_d_cc as e
 import cv2
 
 if __name__ == "__main__":
-    c = cv2.imread("lena.png", cv2.IMREAD_GRAYSCALE)
+    host = cv2.imread("hosts/lena.png", cv2.IMREAD_GRAYSCALE)
+    wm = cv2.imread("watermarks/flower.png", cv2.IMREAD_GRAYSCALE)
+    _, wm = cv2.threshold(wm, 127, 255, cv2.THRESH_BINARY)
 
+    # c = e.EFFTBlindDCC.embed(host=host, wm=wm, embedding_strength=1, secret_key=1)
 
-    c = e.EFixedDLC.embed(work=c, secret=True, secret_key=100)
-    ext = e.EFixedDLC.extract(work=c, secret_key=100, threshold=0.1)
-    print(ext)
+    e.EFFTBlindDCC.plot_strength_correlation(host, wm, secret_key=0)
 
-    cv2.imshow("ceva", c)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # plt.imshow(c, cmap="gray")
+    # plt.show()

@@ -70,3 +70,25 @@ class BaseWatermarker(ABC):
 
         padded = np.pad(small_array, ((pad_top, pad_bottom), (pad_left, pad_right)), mode='constant')
         return padded
+
+    def _crop_center(image: np.ndarray, crop_size: Tuple[int, ...]):
+        """
+        Crop the center of an image to the given shape.
+
+        Parameters:
+            image (np.ndarray): Input image.
+            crop_size (tuple): (crop_height, crop_width)
+
+        Returns:
+            np.ndarray: Center-cropped image.
+        """
+        h, w = image.shape[:2]
+        ch, cw = crop_size
+
+        if ch > h or cw > w:
+            raise ValueError("Crop size must be smaller than the image size.")
+
+        start_y = (h - ch) // 2
+        start_x = (w - cw) // 2
+
+        return image[start_y:start_y + ch, start_x:start_x + cw]

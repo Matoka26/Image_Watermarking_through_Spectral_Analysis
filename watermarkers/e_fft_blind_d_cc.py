@@ -3,7 +3,9 @@ import numpy as np
 from typing import Union, Tuple
 import matplotlib.pyplot as plt
 
-
+'''
+Try applying 2 wm to the same host, they'll 'split' the CC value
+'''
 class EFFTBlindDCC(BaseWatermarker):
     @staticmethod
     def embed(host: np.ndarray,

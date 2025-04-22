@@ -10,9 +10,9 @@ if __name__ == "__main__":
 
     # c = e.EFFTBlindDCC.embed(host=host, wm=wm, embedding_strength=10, secret_key=1)
 
-    e.EFFTBlindDCC.plot_strength_correlation(host, wm, secret_key=0)
+    alpha = e.EFFTBlindDCC.get_best_strengths_for_keys(host, wm, secret_keys=[0, 7, 51, 97], plot=True)
 
-
+    print(alpha)
     # plt.imshow(cropped_host_fft)
     # plt.colorbar()
     #

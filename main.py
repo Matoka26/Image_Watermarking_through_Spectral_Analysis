@@ -1,17 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from watermarkers import e_fft_blind_d_cc as e
+from watermarkers import e_fft_ss_blind_d_cc as e
 import cv2
+
 
 if __name__ == "__main__":
     host = cv2.imread("hosts/lena.png", cv2.IMREAD_GRAYSCALE)
     wm = cv2.imread("watermarks/flower.png", cv2.IMREAD_GRAYSCALE)
     _, wm = cv2.threshold(wm, 127, 255, cv2.THRESH_BINARY)
 
-    c = e.EFFTBlindDCC.embed(host=host, wm=wm, embedding_strength=11, secret_key=33, fftshit=False)
-    extracted_wm = e.EFFTBlindDCC.extract_watermark(c, target_shape=wm.shape, secret_key=33, fftshift=False)
-    cc = e.BaseWatermarker._correlation_coefficient(wm, extracted_wm)
+    alpha = 7
+    c = e.EFFTSSBlindDCC.embed(host=host, wm=wm, embedding_strength=alpha, secret_key=0)
 
-    print(cc)
-    plt.imshow(extracted_wm)
-    plt.show()
+    extracted_watermark = e.EFFTSSBlindDCC.extract(c, target_shape=wm.shape, secret_key=0, embedding_strength=alpha)

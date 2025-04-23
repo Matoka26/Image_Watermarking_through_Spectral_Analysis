@@ -40,6 +40,24 @@ class EFFTBlindDCC(BaseWatermarker):
         return np.clip(emb_host, 0, 255).astype(np.uint8)
 
     @staticmethod
+    def extract_watermark(host: np.ndarray,
+                          target_shape: Tuple[int, ...],
+                          secret_key: int,
+                          fftshift: bool=False) -> np.ndarray:
+        noise = np.random.random(target_shape)
+        reverse_key = BaseWatermarker._get_cat_map_key(noise)
+
+        host_fft = np.fft.fft2(host)
+        if fftshift:
+            host_fft = np.fft.fftshift(host_fft)
+
+        host_fft = np.log(np.abs(host_fft) + 1e-9) * 10
+        center_ftt = BaseWatermarker._crop_center(host_fft, crop_size=target_shape)
+        unscrambled_center = BaseWatermarker._arnolds_cat_map_scramble(center_ftt, secret_key=(reverse_key-secret_key))
+
+        return unscrambled_center
+
+    @staticmethod
     def test_watermark(host: np.ndarray,
                        wm: np.ndarray,
                        secret_key: int,

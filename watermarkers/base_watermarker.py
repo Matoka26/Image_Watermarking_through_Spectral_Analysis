@@ -45,6 +45,29 @@ class BaseWatermarker(ABC):
         return ret
 
     @staticmethod
+    def _get_cat_map_key(image: np.ndarray) -> int:
+        """
+        Scrambles the pixels of an image over and over again according to the transformation:
+            F(x, y) = [ 1  1 ] * [ x ]  (mod N), where N is the side length of the image
+                      [ 1  2 ]   [ y ]
+            until the original image reappears, finding the decription key, represented
+            by the period of the imaage
+        Parameters:
+            image (np.ndarray): A NumPy array representing an image
+        Returns:
+            int: The decription key
+        """
+        new_img = copy.deepcopy(image)
+        new_img = BaseWatermarker._arnolds_cat_map_scramble(new_img)
+
+        i = 1
+        while not (new_img == image).all():
+            new_img = BaseWatermarker._arnolds_cat_map_scramble(new_img)
+            i += 1
+
+        return i
+
+    @staticmethod
     def _pad_to_center(small_array: np.ndarray, target_shape: Tuple[int, ...]):
         """
         Pads a 2D array (small_array) with zeros so that it is centered

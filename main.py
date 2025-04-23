@@ -9,10 +9,9 @@ if __name__ == "__main__":
     _, wm = cv2.threshold(wm, 127, 255, cv2.THRESH_BINARY)
 
     c = e.EFFTBlindDCC.embed(host=host, wm=wm, embedding_strength=11, secret_key=33, fftshit=False)
-
     extracted_wm = e.EFFTBlindDCC.extract_watermark(c, target_shape=wm.shape, secret_key=33, fftshift=False)
-
     cc = e.BaseWatermarker._correlation_coefficient(wm, extracted_wm)
+
     print(cc)
     plt.imshow(extracted_wm)
     plt.show()

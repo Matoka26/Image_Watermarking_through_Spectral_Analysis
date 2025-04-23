@@ -1,22 +1,11 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Tuple
 import copy
 import numpy as np
 import warnings
+from metrics.metrics import Metrics
 
-
-class BaseWatermarker(ABC):
-    @staticmethod
-    def _correlation_coefficient(a: np.ndarray, b: np.ndarray) -> np.float64:
-        a_norm = a.flatten().astype(np.float64)
-        b_norm = b.flatten().astype(np.float64)
-
-        # Normalize data
-        a_norm = (a_norm - np.mean(a_norm)) / np.std(a_norm)
-        b_norm = (b_norm - np.mean(b_norm)) / np.std(b_norm)
-
-        # Compute correlation
-        return np.dot(a_norm, b_norm) / a_norm.size
+class BaseWatermarker(Metrics):
 
     @staticmethod
     def _arnolds_cat_map_scramble(img_array: np.ndarray, secret_key: int = 1) -> np.ndarray:

@@ -8,7 +8,7 @@ NOTE: in the embedding, clip-ing the output image would ruin the quantization
 '''
 
 
-class EFFTSSBlindDCC(BaseWatermarker):
+class EFFTSSBlindDQ(BaseWatermarker):
     @staticmethod
     def embed(host: np.ndarray,
               wm: np.ndarray,

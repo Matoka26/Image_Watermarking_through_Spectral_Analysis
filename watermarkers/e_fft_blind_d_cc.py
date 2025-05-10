@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 '''
 Try applying 2 wm to the same host, they'll 'split' the CC value
 '''
+
+
 class EFFTBlindDCC(BaseWatermarker):
     @staticmethod
     def embed(host: np.ndarray,
@@ -40,12 +42,10 @@ class EFFTBlindDCC(BaseWatermarker):
         return np.clip(emb_host, 0, 255).astype(np.uint8)
 
     @staticmethod
-    def extract_watermark(host: np.ndarray,
-                          target_shape: Tuple[int, ...],
-                          secret_key: int,
-                          fftshift: bool=False) -> np.ndarray:
-        noise = np.random.random(target_shape)
-        reverse_key = BaseWatermarker._get_cat_map_key(noise)
+    def extract(host: np.ndarray,
+                target_shape: Tuple[int, ...],
+                secret_key: int,
+                fftshift: bool=False) -> np.ndarray:
 
         host_fft = np.fft.fft2(host)
         if fftshift:
@@ -53,7 +53,7 @@ class EFFTBlindDCC(BaseWatermarker):
 
         host_fft = np.log(np.abs(host_fft) + 1e-9) * 10
         center_ftt = BaseWatermarker._crop_center(host_fft, crop_size=target_shape)
-        unscrambled_center = BaseWatermarker._arnolds_cat_map_scramble(center_ftt, secret_key=(reverse_key-secret_key))
+        unscrambled_center = BaseWatermarker._arnolds_cat_map_inverse(center_ftt, secret_key=secret_key)
 
         return unscrambled_center
 

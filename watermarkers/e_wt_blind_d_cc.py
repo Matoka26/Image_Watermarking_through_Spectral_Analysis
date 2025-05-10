@@ -41,7 +41,19 @@ class EWTBlindDCC(BaseWatermarker):
 
         return rec
 
+    @staticmethod
+    def extract(host: np.ndarray,
+                target_shape: Tuple[int, ...],
+                secret_key: int) -> np.ndarray:
 
+        dec = pywt.wavedec2(host, 'db1', level=EWTBlindDCC._level)
+        HH = dec[EWTBlindDCC._level][EWTBlindDCC.HH_BAND]
+
+        HH_crop = BaseWatermarker._crop_center(HH, target_shape)
+        HH_crop = BaseWatermarker._arnolds_cat_map_inverse(HH_crop, secret_key=secret_key)
+
+        HH_crop_th = np.where(HH_crop > np.median(HH_crop)*10, 255, 0)
+        return HH_crop_th
 
     @staticmethod
     def test_watermark(host: np.ndarray,
@@ -62,20 +74,3 @@ class EWTBlindDCC(BaseWatermarker):
         ll_cc = BaseWatermarker._correlation_coefficient(np.log(np.abs(LL_crop)), wm_scrambled)
 
         return ll_cc, hh_cc
-
-    @staticmethod
-    def extract_watermark(host: np.ndarray,
-                          target_shape: Tuple[int, ...],
-                          secret_key: int) -> np.ndarray:
-
-        noise = np.random.random(target_shape)
-        reverse_key = BaseWatermarker._get_cat_map_key(noise)
-
-        dec = pywt.wavedec2(host, 'db1', level=EWTBlindDCC._level)
-        HH = dec[EWTBlindDCC._level][EWTBlindDCC.HH_BAND]
-
-        HH_crop = BaseWatermarker._crop_center(HH, target_shape)
-        HH_crop = BaseWatermarker._arnolds_cat_map_scramble(HH_crop, secret_key=(reverse_key-secret_key))
-
-        HH_crop_th = np.where(HH_crop > np.median(HH_crop)*10, 255, 0)
-        return HH_crop_th

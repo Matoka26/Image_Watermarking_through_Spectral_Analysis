@@ -9,6 +9,7 @@ import numpy as np
 - I declare that this method is not worth working with, except mathematical purposes
 '''
 
+
 class EFixedDLC(EBlindDLC):
     @staticmethod
     def embed(work: np.ndarray,

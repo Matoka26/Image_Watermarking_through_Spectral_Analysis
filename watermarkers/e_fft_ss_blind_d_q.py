@@ -67,8 +67,6 @@ class EFFTSSBlindDQ(BaseWatermarker):
         extracted_bits = extracted_bits.reshape(target_shape)
 
         # Unscramble
-        noise = np.random.random(target_shape)
-        reverse_key = BaseWatermarker._get_cat_map_key(noise)
-        extracted_bits = BaseWatermarker._arnolds_cat_map_scramble(extracted_bits, secret_key=(reverse_key-secret_key))
+        extracted_bits = BaseWatermarker._arnolds_cat_map_inverse(extracted_bits, secret_key=secret_key)
 
         return extracted_bits

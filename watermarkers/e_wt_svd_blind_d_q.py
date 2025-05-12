@@ -40,6 +40,9 @@ class EWTSVDBlindDQ(BaseWatermarker):
               secret_key: int,
               embedding_strength: np.float64 = 1) -> np.ndarray:
 
+
+        ''' Consdier Embedding Strength as something around 30'''
+
         assert host.shape[0] == host.shape[1], "Cover Work must be square"
         assert wm.shape[0] == wm.shape[1], "Watermark must be square"
 
@@ -88,7 +91,7 @@ class EWTSVDBlindDQ(BaseWatermarker):
         # Perform inverse wavelet transform
         watermarked = pywt.waverec2(coeffs_wm, 'db1')
         # Clip and convert back to original dtype
-        # watermarked = np.clip(watermarked, 0, 255).astype(host.dtype)
+        watermarked = np.clip(watermarked, 0, 255).astype(host.dtype)
         return watermarked
 
     @staticmethod

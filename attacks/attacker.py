@@ -1,5 +1,7 @@
 from scipy.ndimage import gaussian_filter, median_filter
+from skimage.metrics import peak_signal_noise_ratio
 from skimage import exposure
+from metrics.metrics import binary_error_rate
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
@@ -134,3 +136,111 @@ class Attacker:
         image = image.copy()
         image[mask == 255] = 255
         return image
+
+    def _rotate(self, image, n_rotations=1):
+        return np.rot90(image.copy(), k=n_rotations)
+    
+    def plot_all_attacks(self, host, mask):
+        attacked_images = [
+            host,
+            self._white_noise(host, mean=3),
+            self._salt_and_pepper(host),
+            self._uniform_noise(host, high=8),
+            self._gaussian_filter(host),
+            self._median_filter(host, size=(3, 3)),
+            self._sharpening_filter(host, size=(3, 3)),
+            self._jpeg_compression(host),
+            self._brighten(host, value=30),
+            self._darken(host, value=30),
+            self._histogram_equalization(host),
+            cv2.resize(self._scaling(host, percent=30), host.shape),
+            self._crop_corners(host, percent=30),
+            self._rotate(host, n_rotations=3),
+            self._inpaint(host, mask)
+        ]
+        attack_names = [
+            "Original",
+            "White Noise",
+            "Salt & Pepper",
+            "Uniform Noise",
+            "Gaussian Filter",
+            "Median Filter",
+            "Sharpening Filter",
+            "JPEG Compression",
+            "Brighten",
+            "Darken",
+            "Histogram Equaliaztion",
+            "Scaling",
+            "Crop Corners",
+            "Rotate",
+            "Inpain"
+        ]
+
+        fig, axes = plt.subplots(3, 5, figsize=(10, 10))
+        axes = axes.flatten()
+
+        for i, ax in enumerate(axes):
+            ax.imshow(attacked_images[i])
+            ax.set_title(f"{i}. {attack_names[i]}\n PSNR:{peak_signal_noise_ratio(host, attacked_images[i]):.2f}")
+            ax.axis('off')
+
+        plt.tight_layout()
+        # plt.savefig('figures/Statistics/Attacks.pdf')
+        plt.show()
+
+    def plot_all_extractions(self, embedder, watermarked, target_shape, embedding_strength, mask, original_wm, secret_key=1, plot_name=None):
+
+        attacked_images = [
+            watermarked,
+            self._white_noise(watermarked, mean=3),
+            self._salt_and_pepper(watermarked),
+            self._uniform_noise(watermarked, high=8),
+            self._gaussian_filter(watermarked),
+            self._median_filter(watermarked, size=(3, 3)),
+            self._sharpening_filter(watermarked, size=(3, 3)),
+            self._jpeg_compression(watermarked),
+            self._brighten(watermarked, value=30),
+            self._darken(watermarked, value=30),
+            self._histogram_equalization(watermarked),
+            cv2.resize(self._scaling(watermarked, percent=30), watermarked.shape),
+            self._crop_corners(watermarked, percent=30),
+            self._rotate(watermarked, n_rotations=3),
+            self._inpaint(watermarked, mask)
+        ]
+        attack_names = [
+            "No Attack",
+            "White Noise",
+            "Salt & Pepper",
+            "Uniform Noise",
+            "Gaussian Filter",
+            "Median Filter",
+            "Sharpening Filter",
+            "JPEG Compression",
+            "Brighten",
+            "Darken",
+            "Histogram Equaliaztion",
+            "Scaling",
+            "Crop Corners",
+            "Rotate",
+            "Inpain"
+        ]
+
+        extracted_wms = [embedder.extract(img, target_shape, secret_key, embedding_strength) for img in attacked_images]
+
+        fig, axes = plt.subplots(3, 5, figsize=(10, 10))
+        axes = axes.flatten()
+
+        for i, ax in enumerate(axes):
+            ax.imshow(extracted_wms[i])
+            if attack_names[i] != "Rotate":
+                ax.set_title(f"{i}. {attack_names[i]}\n BER:{binary_error_rate(extracted_wms[i], original_wm):.2f}")
+            else:
+                rotated_wm = self._rotate(original_wm, n_rotations=3)
+                ax.set_title(f"{i}. {attack_names[i]}\n BER:{binary_error_rate(extracted_wms[i], rotated_wm):.2f}")
+            ax.axis('off')
+
+        plt.tight_layout()
+        if plot_name is None:
+            plt.show()
+        else:
+            plt.savefig(f'{"figures/Statistics/" + plot_name + ".pdf"}')

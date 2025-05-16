@@ -44,7 +44,8 @@ class EWTBlindDCC(BaseWatermarker):
     @staticmethod
     def extract(host: np.ndarray,
                 target_shape: Tuple[int, ...],
-                secret_key: int) -> np.ndarray:
+                secret_key: int,
+                embedding_strength: float) -> np.ndarray:
 
         dec = pywt.wavedec2(host, 'db1', level=EWTBlindDCC._level)
         HH = dec[EWTBlindDCC._level][EWTBlindDCC.HH_BAND]

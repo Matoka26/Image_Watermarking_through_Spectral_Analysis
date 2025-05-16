@@ -3,10 +3,9 @@ from typing import Tuple
 import copy
 import numpy as np
 import warnings
-from metrics.metrics import Metrics
 
 
-class BaseWatermarker(Metrics):
+class BaseWatermarker(ABC):
 
     cat_map_periods = {
         2: 3,

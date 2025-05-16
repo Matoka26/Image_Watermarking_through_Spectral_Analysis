@@ -47,9 +47,9 @@ class EFFTSSBlindDQ(BaseWatermarker):
 
     @staticmethod
     def extract(host: np.ndarray,
-                          target_shape: Tuple[int, ...],
-                          secret_key: int,
-                          embedding_strength: np.float64 = 1) -> np.ndarray:
+                  target_shape: Tuple[int, ...],
+                  secret_key: int,
+                  embedding_strength: np.float64 = 1) -> np.ndarray:
         host_fft = np.fft.fft2(host)
         magnitude = np.abs(host_fft).flatten()
 

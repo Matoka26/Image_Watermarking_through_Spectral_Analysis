@@ -2,6 +2,7 @@ from .base_watermarker import BaseWatermarker
 import numpy as np
 from typing import Union, Tuple
 import matplotlib.pyplot as plt
+import cv2
 
 '''
 Try applying 2 wm to the same host, they'll 'split' the CC value
@@ -45,6 +46,7 @@ class EFFTBlindDCC(BaseWatermarker):
     def extract(host: np.ndarray,
                 target_shape: Tuple[int, ...],
                 secret_key: int,
+                embedding_strenght: float,
                 fftshift: bool=False) -> np.ndarray:
 
         host_fft = np.fft.fft2(host)
@@ -55,7 +57,11 @@ class EFFTBlindDCC(BaseWatermarker):
         center_ftt = BaseWatermarker._crop_center(host_fft, crop_size=target_shape)
         unscrambled_center = BaseWatermarker._arnolds_cat_map_inverse(center_ftt, secret_key=secret_key)
 
+        unscrambled_center = np.array(unscrambled_center, dtype=np.uint8)
+        _, thresh = cv2.threshold(unscrambled_center, 90, 255, cv2.THRESH_BINARY_INV)
+        unscrambled_center = cv2.bitwise_not(thresh)
         return unscrambled_center
+
 
     @staticmethod
     def test_watermark(host: np.ndarray,

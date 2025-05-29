@@ -15,13 +15,13 @@ class EFFTBlindDCC(BaseWatermarker):
               wm: np.ndarray,
               secret_key: int,
               embedding_strength: np.float64 = 1,
-              fftshit: bool=False) -> np.ndarray:
+              fftshift: bool=False) -> np.ndarray:
 
         # Encrypt watermark
         wm = BaseWatermarker._arnolds_cat_map_scramble(wm, secret_key=secret_key)
 
         host_fft = np.fft.fft2(host)
-        if fftshit:
+        if fftshift:
             host_fft = np.fft.fftshift(host_fft)
 
         # Map values {0, 255} -> {0, 1}
@@ -34,7 +34,7 @@ class EFFTBlindDCC(BaseWatermarker):
         emb_host_fft = host_fft + np.exp(embedding_strength) * wm_norm
 
 
-        if fftshit:
+        if fftshift:
             emb_host_fft = np.fft.ifftshift(emb_host_fft)
 
         emb_host = np.fft.ifft2(emb_host_fft)
@@ -46,7 +46,7 @@ class EFFTBlindDCC(BaseWatermarker):
     def extract(host: np.ndarray,
                 target_shape: Tuple[int, ...],
                 secret_key: int,
-                embedding_strenght: float,
+                embedding_strenght: float=None,
                 fftshift: bool=False) -> np.ndarray:
 
         host_fft = np.fft.fft2(host)
@@ -67,7 +67,7 @@ class EFFTBlindDCC(BaseWatermarker):
     def test_watermark(host: np.ndarray,
                        wm: np.ndarray,
                        secret_key: int,
-                       fftshit: bool=False) -> np.float64:
+                       fftshift: bool=False) -> np.float64:
 
         # Encrypt watermark
         wm = BaseWatermarker._arnolds_cat_map_scramble(wm, secret_key=secret_key)
@@ -76,7 +76,7 @@ class EFFTBlindDCC(BaseWatermarker):
 
         # Transform in Frequency
         host_fft = np.fft.fft2(host)
-        if fftshit:
+        if fftshift:
             host_fft = np.fft.fftshift(host_fft)
         emb_host = np.log(np.abs(host_fft) + 1e-9) * 10
 
@@ -88,7 +88,7 @@ class EFFTBlindDCC(BaseWatermarker):
                           wm: np.ndarray,
                           secret_keys: list[int],
                           plot: bool=False,
-                          fftshit: bool=False) -> dict[int, float]:
+                          fftshift: bool=False) -> dict[int, float]:
 
         N = 1000
         samples = np.linspace(0, 50, N)
@@ -104,7 +104,7 @@ class EFFTBlindDCC(BaseWatermarker):
             wm_norm_pad = BaseWatermarker._pad_to_center(wm_norm, host.shape)
 
             host_fft = np.fft.fft2(host)
-            if fftshit:
+            if fftshift:
                 host_fft = np.fft.fftshift(host_fft)
             strengths = []
 
@@ -112,7 +112,7 @@ class EFFTBlindDCC(BaseWatermarker):
                 # embed
                 emb_host_fft = host_fft + np.exp(e_s) * wm_norm_pad
 
-                if fftshit:
+                if fftshift:
                     emb_host_fft = np.fft.ifftshift(emb_host_fft)
 
                 emb_host = np.fft.ifft2(emb_host_fft)
@@ -121,7 +121,7 @@ class EFFTBlindDCC(BaseWatermarker):
 
                 # re-transform
                 emb_host_fft = np.fft.fft2(emb_host)
-                if fftshit:
+                if fftshift:
                     emb_host_fft = np.fft.fftshift(emb_host)
 
                 emb_host = np.log(np.abs(emb_host_fft) + 1e-9) * 10

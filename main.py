@@ -1,5 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
+import pywt
 import matplotlib.gridspec as gridspec
 from watermarkers import base_watermarker as be
 from watermarkers import e_wt_svd_blind_d_q as e5
@@ -15,104 +17,103 @@ from attacks import attacker as at
 
 import cv2
 
-
-def compute_spectrum(img):
-    sp = np.fft.fft2(img)
-    return np.fft.fftshift((np.abs(np.log(sp))))
-
-def binary_error_rate(a:np.ndarray, b:np.ndarray) -> np.float64:
-    assert a.shape == b.shape, "Shape mismatch between watermark arrays"
-    total_bits = a.size
-    num_errors = np.sum(a != b)
-    return num_errors / total_bits
-
-
 if __name__ == "__main__":
+
+    # Prepare different watermark sizes
     host = cv2.imread("hosts/lena.png", cv2.IMREAD_GRAYSCALE)
     wm = cv2.imread("watermarks/flower.png", cv2.IMREAD_GRAYSCALE)
     _, wm = cv2.threshold(wm, 127, 255, cv2.THRESH_BINARY)
 
-    # mask = cv2.imread("mask.png", cv2.IMREAD_GRAYSCALE)
-    # mask = cv2.resize(mask, (host.shape[1], host.shape[0]))
-    # _, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY)
-    # mask = ~mask
-    #
+    mask = cv2.imread("mask.png", cv2.IMREAD_GRAYSCALE)
+    mask = cv2.resize(mask, (host.shape[1], host.shape[0]))
+    _, mask = cv2.threshold(mask, 1, 255, cv2.THRESH_BINARY)
+    mask = ~mask
+
     attack = at.Attacker()
     secret_key = 27
-    embedding_strength = 8
-    # plot_name = 'Frequency_System2_attacked_extractions_key0'
-    plot_name = None
 
-    # # emb5 = e5.EWTSVDBlindDQ.embed(host, wm, secret_key, embedding_strength)
-    # # emb3 = e3.EWTBlindDCC.embed(host, wm, secret_key, embedding_strength)
-    # # emb2 = e2.EFFTSSBlindDQ.embed(host, wm, secret_key, embedding_strength)
+    # # emb5 =
+    # # emb3 =
+    # #
 
-    emb1 = e1.EFFTBlindDCC.embed(host, wm, secret_key, embedding_strength=14, fftshift=True)
-    emb2 = e1.EFFTBlindDCC.embed(host, wm, secret_key, embedding_strength=11, fftshift=False)
+    embeded_images = [
+        e1.EFFTBlindDCC.embed(host, wm, secret_key, embedding_strength=11, fftshift=False),
+        e2.EFFTSSBlindDQ.embed(host, wm, secret_key, embedding_strength=7),
+        e3.EWTBlindDCC.embed(host, wm, secret_key, embedding_strength=30),
+        e5.EWTSVDBlindDQ.embed(host, wm, secret_key, embedding_strength=40)
+    ]
 
-    ext1 = e1.EFFTBlindDCC.extract(emb1, wm.shape, secret_key, fftshift=True)
-    ext2 = e1.EFFTBlindDCC.extract(emb2, wm.shape, secret_key, fftshift=False)
+    fig, ax = plt.subplots(nrows=15, ncols=4, figsize=(6, 8))  # bigger figure for clarity
 
-    ncols = 4
+    embedding_titles = [
+        "System1",
+        "System2",
+        "System3",
+        "System4"
+    ]
 
-    # Set up GridSpec with a small third row for the colorbar
-    fig = plt.figure(figsize=(10, 7))
-    gs = gridspec.GridSpec(3, ncols, height_ratios=[1, 1, 0.05])
+    attack_names = [
+        "Original",
+        "White Noise",
+        "Salt & Pepper",
+        "Uniform Noise",
+        "Gaussian Filter",
+        "Median Filter",
+        "Sharpen Filter",
+        "JPEG Compression",
+        "Brighten",
+        "Darken",
+        "Hist. Equalization",
+        "Scaling",
+        "Crop Corners",
+        "Rotate",
+        "Inpaint"
+    ]
 
-    # Create 8 axes for images
-    ax = [fig.add_subplot(gs[i // ncols, i % ncols]) for i in range(ncols * 2)]
+    for i, emb in enumerate(embeded_images):
+        emb = emb.copy()
+        attacked_images = [
+            emb,
+            attack._white_noise(emb, mean=3),
+            attack._salt_and_pepper(emb),
+            attack._uniform_noise(emb, high=8),
+            attack._gaussian_filter(emb),
+            attack._median_filter(emb, size=(3, 3)),
+            attack._sharpening_filter(emb, size=(3, 3)),
+            attack._jpeg_compression(emb),
+            attack._brighten(emb, value=30),
+            attack._darken(emb, value=30),
+            attack._histogram_equalization(emb),
+            cv2.resize(attack._scaling(emb, percent=30), emb.shape),
+            attack._crop_corners(emb, percent=30),
+            attack._rotate(emb, n_rotations=3),
+            attack._inpaint(emb, mask)
+        ]
+        for j, a in enumerate(attacked_images):
+            if i == 0:
+                # Show attack name on left side for first column
+                ax[j, i].set_ylabel(attack_names[j], rotation=0, labelpad=40, fontsize=8, va='center')
+            if i == 0:
+                ext = e1.EFFTBlindDCC.extract(a, wm.shape, secret_key=secret_key, fftshift=False)
+            elif i == 1:
+                ext = e2.EFFTSSBlindDQ.extract(a, wm.shape, embedding_strength=7, secret_key=secret_key)
+            elif i == 2:
+                ext = e3.EWTBlindDCC.extract(a, wm.shape, embedding_strength=30, secret_key=secret_key)
+            else:
+                ext = e5.EWTSVDBlindDQ.extract(a, wm.shape, embedding_strength=40, secret_key=secret_key)
 
-    # Disable ticks and borders
-    for a in ax:
-        a.set_xticks([])
-        a.set_yticks([])
-        for spine in a.spines.values():
-            spine.set_visible(False)
+            ax[j, i].imshow(ext, cmap='gray')
+            ax[j, i].axis('off')
 
-    # First row
-    ax[0].imshow(emb1, cmap="gray")
-    ax[0].set_xlabel(
-        f"MSE: {mean_squared_error(emb1, host):.2f}, SSIM: {ssim(host, emb1, data_range=emb1.max() - emb1.min()):.2f}")
+        # Set column title once per embedding method
+        ax[0, i].set_title(embedding_titles[i], fontsize=12)
 
-    ax[1].imshow(ext1, cmap="gray")
-    ax[1].set_xlabel(f'{binary_error_rate(ext1, wm):.2f}')
+    for j, attack_name in enumerate(attack_names):
+        pos = ax[j, 0].get_position()
+        y = pos.y0 + pos.height / 2
+        x = pos.x0 - 0.01
+        fig.text(x, y, attack_name, va='center', ha='right', fontsize=8)
 
-    spec1 = compute_spectrum(emb1)
-    im1 = ax[2].imshow(spec1, cmap="inferno")
-
-    ax[3].imshow(np.abs(host - emb1), cmap="inferno")
-
-    # Second row
-    ax[4].imshow(emb2, cmap="gray")
-    ax[4].set_xlabel(
-        f"MSE: {mean_squared_error(emb2, host):.2f}, SSIM: {ssim(host, emb2, data_range=emb2.max() - emb2.min()):.2f}")
-
-    ax[5].imshow(ext2, cmap="gray")
-    ax[5].set_xlabel(f'{binary_error_rate(ext2, wm):.2f}')
-
-    spec2 = compute_spectrum(emb2)
-    ax[6].imshow(spec2, cmap="inferno")
-
-    ax[7].imshow(np.abs(host - emb2), cmap="inferno")
-
-    # Column titles
-    titles = ["Embedded", "Extracted", "Spectrum", "Difference"]
-    for i in range(ncols):
-        ax[i].set_title(titles[i])
-
-
-    # Colorbar underneath the Spectrum column
-    cbar_ax = fig.add_subplot(gs[2, 2])  # third row, third column
-    cbar = fig.colorbar(im1, cax=cbar_ax, orientation='horizontal')
-
-    # Colorbar underneath the Difference column (last column)
-    diff_im = ax[3].images[0]  # use the image from the first row difference
-    cbar_ax_diff = fig.add_subplot(gs[2, 3])  # third row, last column
-    cbar_diff = fig.colorbar(diff_im, cax=cbar_ax_diff, orientation='horizontal')
-
-    # Add side titles for each row
-    fig.text(0, 0.75, 'Low Frequency', va='center', rotation='vertical', fontsize=12)
-    fig.text(0, 0.35, 'High Frequency', va='center', rotation='vertical', fontsize=12)
-
-    plt.tight_layout()
-    plt.savefig('figures/Frequency_System1/Frequency_System1_Overall.pdf')
+    # plt.subplots_adjust(wspace=0.1)  # tighten horizontal space between columns
+    # plt.show()
+    plt.savefig("figures/Statistics/Overall.pdf")

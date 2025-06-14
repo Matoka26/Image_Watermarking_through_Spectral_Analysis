@@ -91,7 +91,7 @@ class EWTSVDBlindDQ(BaseWatermarker):
         # Perform inverse wavelet transform
         watermarked = pywt.waverec2(coeffs_wm, 'db1')
         # Clip and convert back to original dtype
-        watermarked = np.clip(watermarked, 0, 255).astype(host.dtype)
+        watermarked = np.clip(watermarked, 0, 255).astype(np.uint8)
         return watermarked
 
     @staticmethod

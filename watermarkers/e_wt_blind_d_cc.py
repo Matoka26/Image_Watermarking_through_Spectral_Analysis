@@ -39,13 +39,13 @@ class EWTBlindDCC(BaseWatermarker):
         dec[0] = LL
         rec = pywt.waverec2(dec, 'db1')
 
-        return rec
+        return np.clip(rec, 0 ,255).astype(np.uint8)
 
     @staticmethod
     def extract(host: np.ndarray,
                 target_shape: Tuple[int, ...],
                 secret_key: int,
-                embedding_strength: float) -> np.ndarray:
+                embedding_strength: float=None) -> np.ndarray:
 
         dec = pywt.wavedec2(host, 'db1', level=EWTBlindDCC._level)
         HH = dec[EWTBlindDCC._level][EWTBlindDCC.HH_BAND]

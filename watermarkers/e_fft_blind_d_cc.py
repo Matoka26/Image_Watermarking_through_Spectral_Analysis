@@ -3,6 +3,7 @@ import numpy as np
 from typing import Union, Tuple
 import matplotlib.pyplot as plt
 import cv2
+from metrics import metrics as m
 
 '''
 Try applying 2 wm to the same host, they'll 'split' the CC value
@@ -25,7 +26,7 @@ class EFFTBlindDCC(BaseWatermarker):
             host_fft = np.fft.fftshift(host_fft)
 
         # Map values {0, 255} -> {0, 1}
-        wm_norm = wm / np.max(wm)
+        wm_norm = wm / 255
 
         # Pad the watermark with 0's to the center of the host's spectrum
         wm_norm = BaseWatermarker._pad_to_center(wm_norm, host_fft.shape)
@@ -46,7 +47,7 @@ class EFFTBlindDCC(BaseWatermarker):
     def extract(host: np.ndarray,
                 target_shape: Tuple[int, ...],
                 secret_key: int,
-                embedding_strenght: float=None,
+                embedding_strength: float=None,
                 fftshift: bool=False) -> np.ndarray:
 
         host_fft = np.fft.fft2(host)
@@ -90,8 +91,8 @@ class EFFTBlindDCC(BaseWatermarker):
                           plot: bool=False,
                           fftshift: bool=False) -> dict[int, float]:
 
-        N = 1000
-        samples = np.linspace(0, 50, N)
+        N = 500
+        samples = np.linspace(0, 20, N)
         best_alphas = {}
 
         if plot:
@@ -127,7 +128,7 @@ class EFFTBlindDCC(BaseWatermarker):
                 emb_host = np.log(np.abs(emb_host_fft) + 1e-9) * 10
 
                 emb_host_center = BaseWatermarker._crop_center(emb_host, wm_norm.shape)
-                strengths.append(BaseWatermarker._correlation_coefficient(emb_host_center, wm_norm))
+                strengths.append(m.correlation_coefficient(emb_host_center, wm_norm))
 
             max_idx = np.argmax(strengths)
             best_alpha = samples[max_idx]

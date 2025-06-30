@@ -1,58 +1,93 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
 from watermarkers import e_wt_svd_blind_d_q as e5
+from skimage.metrics import structural_similarity as ssim
 
-# ==== STEP 1: Create wrapped text image using Pillow ====
 
-# Create a 64x64 white image
+def set_borders_255(matrix, border_thickness=1):
+    # Top border
+    matrix[:border_thickness, :] = 0
+    # Bottom border
+    matrix[-border_thickness:, :] = 0
+    # Left border
+    matrix[:, :border_thickness] = 0
+    # Right border
+    matrix[:, -border_thickness:] = 0
+
+# === Prepare watermark text ===
 img_pil = Image.new('L', (80, 80), color=255)
 draw = ImageDraw.Draw(img_pil)
-
-# Font & wrapped text
 font = ImageFont.load_default()
 sentence = input("Enter a sentence to watermark: ")
-
-# Wrap to ~10 characters per line (tweak if needed)
 wrapped_text = textwrap.fill(sentence, width=10)
-
-# Draw wrapped text
 draw.text((2, 2), wrapped_text, fill=0, font=font)
-
-# Convert Pillow image to OpenCV format (NumPy array)
 image = np.array(img_pil)
 
-# Threshold to binary watermark
 _, wm = cv2.threshold(image, 127, 255, cv2.THRESH_BINARY)
+set_borders_255(wm)
 
-# ==== STEP 2: Watermark embedding ====
+# === Read secret key from keyboard ===
+secret_key = 42
+
 host = cv2.imread("hosts/lena.png", cv2.IMREAD_GRAYSCALE)
-secret_key = 27
-emb_str = 40
-
+emb_str = 30
 emb = e5.EWTSVDBlindDQ.embed(host, wm, secret_key, embedding_strength=emb_str)
 ext = e5.EWTSVDBlindDQ.extract(emb, wm.shape, secret_key=secret_key, embedding_strength=emb_str)
 
-# ==== STEP 3: Plot all in one row ====
-fig, axs = plt.subplots(1, 4, figsize=(12, 4))
+# Compute difference between extracted and original watermark
+diff = np.abs(emb - host)
 
-axs[0].imshow(wm, cmap='gray')
-axs[0].set_title("Original Wrapped Text")
-axs[0].axis('off')
+# --- Compute BER ---
+wm_bin = (wm > 127).astype(np.uint8)
+ext_bin = (ext > 127).astype(np.uint8)
+ber = np.sum(wm_bin != ext_bin) / wm_bin.size
 
-axs[1].imshow(emb, cmap='gray')
-axs[1].set_title("Embedded Image")
-axs[1].axis('off')
+# --- Compute MSE ---
+mse = np.mean((host.astype(np.float32) - emb.astype(np.float32)) ** 2)
 
-axs[2].imshow(ext, cmap='gray')
-axs[2].set_title("Extracted Watermark")
-axs[2].axis('off')
+# --- Compute SSIM ---
+ssim_val = ssim(host, emb, data_range=emb.max() - emb.min())
 
-axs[3].imshow(np.abs(host - emb), cmap='inferno')
-axs[3].set_title("Difference Image")
-axs[3].axis('off')
+# === Plot ===
+fig = plt.figure(figsize=(10, 5))
+gs = GridSpec(2, 4, figure=fig, width_ratios=[2, 1, 1, 1])
+
+# Swap positions: top-left = host, bottom-left = watermark
+ax_host = fig.add_subplot(gs[0, 0])
+ax_wm = fig.add_subplot(gs[1, 0])
+ax_emb = fig.add_subplot(gs[:, 1])
+ax_ext = fig.add_subplot(gs[:, 2])
+ax_diff = fig.add_subplot(gs[:, 3])
+
+ax_host.imshow(host, cmap='gray')
+ax_host.set_title("Host Image")
+ax_host.axis('off')
+
+ax_wm.imshow(wm, cmap='gray')
+ax_wm.set_title("Original Watermark")
+ax_wm.axis('off')
+
+# Show secret key below watermark (black color), moved lower
+bbox = ax_wm.get_position()
+fig.text(bbox.x0 + bbox.width / 2, bbox.y0 - 0.08,
+         f"Secret Key: {secret_key}",
+         ha='center', va='top', fontsize=12, color='black')
+
+ax_emb.imshow(emb, cmap='gray')
+ax_emb.set_title(f"Embedded Image\nMSE: {mse:.2f} | SSIM: {ssim_val:.2f}")
+ax_emb.axis('off')
+
+ax_ext.imshow(ext, cmap='gray')
+ax_ext.set_title(f"Extracted Watermark\nBER: {ber:.2f}")
+ax_ext.axis('off')
+
+ax_diff.imshow(diff, cmap='inferno')
+ax_diff.set_title("Difference Image")
+ax_diff.axis('off')
 
 plt.tight_layout()
 plt.show()
